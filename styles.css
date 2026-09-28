@@ -1,0 +1,179 @@
+/* MindEdit — rendu mindmap façon FreeMind. */
+
+.mindedit-view .view-content,
+.mindedit-view {
+	padding: 0;
+	overflow: hidden;
+}
+
+.mindedit-viewport {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	cursor: grab;
+	background: var(--background-primary);
+	/* Indispensable au tactile : sans ça, le navigateur garde le geste pour
+	   lui — défilement, zoom de page — et n'envoie jamais de `pointermove`.
+	   Les Pointer Events seuls ne suffiraient pas. */
+	touch-action: none;
+	/* Pas de loupe ni de menu « Copier » sur appui long : ce geste est à nous. */
+	-webkit-touch-callout: none;
+}
+
+.mindedit-viewport.is-panning {
+	cursor: grabbing;
+}
+
+/* Le conteneur est focusable pour recevoir le clavier ; l'anneau du navigateur
+   n'apporte rien puisque la sélection est déjà visible sur le nœud actif. */
+.mindedit-viewport:focus,
+.mindedit-viewport:focus-visible {
+	outline: none;
+}
+
+.mindedit-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform-origin: 0 0;
+}
+
+.mindedit-edges,
+.mindedit-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow: visible;
+	pointer-events: none;
+}
+
+/* Liaisons et soulignements sont le même trait, tracés par le même moteur :
+   l'épaisseur doit valoir UNDERLINE_WIDTH dans render.ts. */
+.mindedit-edge {
+	fill: none;
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+
+.mindedit-knob {
+	fill: var(--background-primary);
+	stroke-width: 1.5;
+	pointer-events: none;
+}
+
+.mindedit-knob-target {
+	fill: transparent;
+	cursor: pointer;
+	pointer-events: all;
+}
+
+.mindedit-nodes {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.mindedit-node {
+	position: absolute;
+	/* Sans « max-content », un bloc absolu se réduit à la largeur d'un caractère. */
+	width: max-content;
+	max-width: 340px;
+	/* Le bas réserve la place du soulignement, qui est tracé en SVG. */
+	padding: 1px 4px 4px;
+	line-height: 1.35;
+	font-size: var(--font-text-size, 16px);
+	color: var(--text-normal);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	user-select: none;
+}
+
+/* Tout nœud se sélectionne au clic. */
+.mindedit-node {
+	cursor: pointer;
+}
+
+/* Surbrillance du nœud actif. Ni « padding » ni « border » ici : la taille
+   mesurée doit rester identique, sinon sélectionner déplacerait la carte. */
+.mindedit-node.is-active {
+	background-color: var(--background-modifier-hover, rgba(0, 0, 0, 0.07));
+	box-shadow: 0 0 0 2px var(--interactive-accent, #6a5acd);
+	border-radius: 3px;
+}
+
+.mindedit-node.is-root {
+	font-weight: 600;
+}
+
+.mindedit-node.is-h1 {
+	font-weight: 600;
+	font-size: 1.15em;
+}
+
+.mindedit-node.is-h2 {
+	font-weight: 600;
+	font-size: 1.07em;
+}
+
+.mindedit-node.is-h3 {
+	font-weight: 600;
+}
+
+.mindedit-node.is-editing {
+	background-color: var(--background-primary-alt, rgba(0, 0, 0, 0.04));
+	box-shadow: 0 0 0 2px var(--interactive-accent, #6a5acd);
+	border-radius: 3px;
+	cursor: text;
+}
+
+.mindedit-node.is-editing .mindedit-text {
+	outline: none;
+	white-space: pre-wrap;
+	/* Les nœuds interdisent la sélection ; le champ en saisie, lui, en a besoin
+	   — sans quoi le curseur ne se pose pas au doigt. */
+	user-select: text;
+	-webkit-user-select: text;
+}
+
+.mindedit-checkbox {
+	margin-right: 0.35em;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.mindedit-checkbox:hover {
+	color: var(--interactive-accent, #6a5acd);
+}
+
+.mindedit-checkbox.is-checked {
+	color: var(--text-accent);
+}
+
+.mindedit-marker {
+	margin-right: 0.35em;
+	color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------- mise en forme
+
+   Le texte des nœuds interprète les marqueurs Markdown inline. `strong`,
+   `em` et `del` s'appuient sur le rendu natif du navigateur ; `code` et
+   `mark`, eux, ont un rendu par défaut qui jure avec les thèmes sombres
+   (fond jaune, texte noir) et doivent donc suivre les couleurs d'Obsidian. */
+
+.mindedit-code {
+	font-family: var(--font-monospace, monospace);
+	font-size: 0.9em;
+	padding: 0 0.25em;
+	border-radius: 3px;
+	background-color: var(--code-background, rgba(0, 0, 0, 0.07));
+	color: var(--code-normal, inherit);
+}
+
+.mindedit-mark {
+	padding: 0 0.1em;
+	border-radius: 2px;
+	background-color: var(--text-highlight-bg, rgba(255, 208, 0, 0.4));
+	color: inherit;
+}

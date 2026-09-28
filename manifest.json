@@ -1,0 +1,10 @@
+{
+	"id": "mindedit",
+	"name": "MindEdit",
+	"version": "1.0.0",
+	"minAppVersion": "1.4.0",
+	"description": "Visualisez et éditez vos notes Markdown en mindmap, façon FreeMind.",
+	"author": "Scarelym",
+	"authorUrl": "https://github.com/Scarelym",
+	"isDesktopOnly": false
+}
