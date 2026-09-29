@@ -1568,6 +1568,11 @@ var MindEditView = class extends import_obsidian.TextFileView {
 // src/main.ts
 var FLAG = "mindmap";
 var MindEditPlugin = class extends import_obsidian2.Plugin {
+  constructor() {
+    super(...arguments);
+    /** Notes qu'on est en train de rebasculer en Markdown : le cache peut encore porter le drapeau. */
+    this.leavingMindmap = /* @__PURE__ */ new Set();
+  }
   async onload() {
     this.registerView(MINDEDIT_VIEW, (leaf) => new MindEditView(leaf));
     this.addRibbonIcon(
@@ -1580,21 +1585,34 @@ var MindEditPlugin = class extends import_obsidian2.Plugin {
       name: "Basculer entre Markdown et mindmap",
       callback: () => this.toggleCurrentView()
     });
-    this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
-        if (!file) return;
-        const leaf = this.app.workspace.getMostRecentLeaf();
-        if (!leaf || leaf.getViewState().type !== "markdown") return;
-        if (this.hasFlag(file)) void this.setLeafType(leaf, MINDEDIT_VIEW);
-      })
-    );
+    this.interceptOpening();
   }
   onunload() {
   }
-  hasFlag(file) {
-    var _a;
-    const frontmatter = (_a = this.app.metadataCache.getFileCache(file)) == null ? void 0 : _a.frontmatter;
-    return (frontmatter == null ? void 0 : frontmatter[FLAG]) === true;
+  /**
+   * Une note portant le drapeau s'ouvre directement en mindmap : on corrige
+   * le type de vue au moment où Obsidian l'ouvre, plutôt que de rebasculer
+   * après coup sur « file-open », qui ne se déclenchait pas de façon fiable.
+   */
+  interceptOpening() {
+    const plugin = this;
+    const proto = import_obsidian2.WorkspaceLeaf.prototype;
+    const original = proto.setViewState;
+    proto.setViewState = function(state, eState) {
+      var _a;
+      const path = (_a = state.state) == null ? void 0 : _a.file;
+      if (state.type === "markdown" && typeof path === "string" && !plugin.leavingMindmap.has(path) && plugin.hasFlag(path)) {
+        state = { ...state, type: MINDEDIT_VIEW };
+      }
+      return original.call(this, state, eState);
+    };
+    this.register(() => {
+      proto.setViewState = original;
+    });
+  }
+  hasFlag(path) {
+    var _a, _b;
+    return ((_b = (_a = this.app.metadataCache.getCache(path)) == null ? void 0 : _a.frontmatter) == null ? void 0 : _b[FLAG]) === true;
   }
   async toggleCurrentView() {
     const leaf = this.app.workspace.getMostRecentLeaf();
@@ -1602,8 +1620,14 @@ var MindEditPlugin = class extends import_obsidian2.Plugin {
     const type = leaf.getViewState().type;
     if (type === MINDEDIT_VIEW) {
       const file = leaf.view.file;
-      if (file) await this.writeFlag(file, false);
-      await this.setLeafType(leaf, "markdown");
+      if (!file) return this.setLeafType(leaf, "markdown");
+      this.leavingMindmap.add(file.path);
+      try {
+        await this.writeFlag(file, false);
+        await this.setLeafType(leaf, "markdown");
+      } finally {
+        this.leavingMindmap.delete(file.path);
+      }
       return;
     }
     if (type === "markdown") {
